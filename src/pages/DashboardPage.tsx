@@ -87,12 +87,12 @@ function PaymentStatusCard({ payment, onPayNow, loading }: {
 }
 
 /* Profile completion banner — matches mobile MemberDashboardScreen profileCard */
-let nudgeDismissedThisSession = false;
+const NUDGE_KEY = 'profileNudgeDismissed';
 
 function ProfileCompletionBanner() {
   const navigate = useNavigate();
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: getProfile });
-  const [dismissed, setDismissed] = useState(nudgeDismissedThisSession);
+  const [dismissed, setDismissed] = useState(() => sessionStorage.getItem(NUDGE_KEY) === '1');
 
   const pct = profile?.profileCompletion ?? 0;
   if (pct >= 100 || dismissed) return null;
@@ -103,7 +103,7 @@ function ProfileCompletionBanner() {
 
   function dismiss(e: React.MouseEvent) {
     e.stopPropagation();
-    nudgeDismissedThisSession = true;
+    sessionStorage.setItem(NUDGE_KEY, '1');
     setDismissed(true);
   }
 
