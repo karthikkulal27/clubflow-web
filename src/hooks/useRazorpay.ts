@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createOrder, verifyPayment } from '../lib/payments.api';
 import { authStore } from '../store/auth.store';
+import { toast } from '../lib/toast';
 
 declare global {
   interface Window {
@@ -71,7 +72,12 @@ export function usePayNow(onSuccess?: () => void) {
       qc.invalidateQueries({ queryKey: ['dashboard-admin'] });
       qc.invalidateQueries({ queryKey: ['payments'] });
       qc.invalidateQueries({ queryKey: ['profile'] });
+      toast.success('Payment successful! Your payment has been recorded.');
       onSuccess?.();
+    },
+    onError: (err: unknown) => {
+      const msg = (err as Error)?.message;
+      if (msg && msg !== 'cancelled') toast.error('Payment failed. Please try again.');
     },
   });
 }

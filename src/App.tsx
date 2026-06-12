@@ -17,6 +17,7 @@ import NotificationsPage from './pages/NotificationsPage';
 import ClubSettingsPage from './pages/ClubSettingsPage';
 import Layout from './components/Layout';
 import { InstallBanner } from './components/InstallBanner';
+import { Toaster } from './components/ui/Toaster';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!authStore.isAuthenticated()) return <Navigate to="/login" replace />;
@@ -38,6 +39,7 @@ function GuestOnly({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <Toaster />
       <InstallBanner />
       <BrowserRouter>
         <Routes>

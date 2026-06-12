@@ -13,12 +13,13 @@ import { Badge } from '../components/ui/Badge';
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 /* ── Shared payment row ── */
-function PaymentRow({ payment, showName = false, onPay, onMarkPaid, paying, marking }: {
+function PaymentRow({ payment, showName = false, onPay, onMarkPaid, paying, anyPaying, marking }: {
   payment: any;
   showName?: boolean;
   onPay?: () => void;
   onMarkPaid?: () => void;
   paying?: boolean;
+  anyPaying?: boolean;
   marking?: boolean;
 }) {
   const isPaid = payment.status === 'PAID';
@@ -56,8 +57,8 @@ function PaymentRow({ payment, showName = false, onPay, onMarkPaid, paying, mark
       </div>
       {/* Member: Pay Now */}
       {onPay && !isPaid && (
-        <button onClick={onPay} disabled={paying}
-          className="mt-3 w-full flex items-center justify-center gap-1 bg-primary text-white text-[13px] font-semibold rounded-[14px] py-2.5 disabled:opacity-50">
+        <button onClick={onPay} disabled={anyPaying}
+          className="mt-3 w-full flex items-center justify-center gap-1 bg-primary text-white text-[13px] font-semibold rounded-[14px] py-2.5 disabled:opacity-50 disabled:cursor-not-allowed">
           {paying ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <>Pay Now <ArrowRight size={14} /></>}
         </button>
       )}
@@ -192,7 +193,8 @@ function MemberPayments() {
             {regular.map((p) => (
               <PaymentRow key={p.id} payment={p}
                 onPay={p.status !== 'PAID' ? () => pay.mutate(p.id) : undefined}
-                paying={pay.isPending && pay.variables === p.id} />
+                paying={pay.isPending && pay.variables === p.id}
+                anyPaying={pay.isPending} />
             ))}
           </Card>
         </section>
@@ -205,7 +207,8 @@ function MemberPayments() {
             {special.map((p) => (
               <PaymentRow key={p.id} payment={p}
                 onPay={p.status !== 'PAID' ? () => pay.mutate(p.id) : undefined}
-                paying={pay.isPending && pay.variables === p.id} />
+                paying={pay.isPending && pay.variables === p.id}
+                anyPaying={pay.isPending} />
             ))}
           </Card>
         </section>
