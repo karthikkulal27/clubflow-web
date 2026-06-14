@@ -26,6 +26,7 @@ export async function createMember(payload: {
 export async function updateMember(userId: string, payload: Partial<{
   name: string; phone: string; email: string | null; role: 'ADMIN' | 'MEMBER';
   dateOfBirth: string | null; bloodGroup: string | null; emergencyContact: string | null;
+  password: string;
 }>): Promise<User> {
   const { data } = await api.patch<ApiResponse<User>>(`/members/${userId}`, payload);
   return data.data;

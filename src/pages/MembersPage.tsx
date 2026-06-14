@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { format } from 'date-fns';
 import {
   Users, UserPlus, Search, X, ChevronRight, UserX, UserCheck, Trash2,
-  Phone, Mail, Calendar, Droplets, AlertCircle, Shield, Pencil, CheckCircle, Clock,
+  Phone, Mail, Calendar, Droplets, AlertCircle, Shield, Pencil, CheckCircle, Clock, Lock,
 } from 'lucide-react';
 import {
   getMembers, getMember, createMember, updateMember,
@@ -105,6 +105,7 @@ const editSchema = z.object({
   role: z.enum(['MEMBER', 'ADMIN']),
   bloodGroup: z.string().optional(),
   emergencyContact: z.string().min(10).or(z.literal('')).optional(),
+  newPassword: z.string().min(6, 'Min 6 characters').or(z.literal('')).optional(),
 });
 type EditForm = z.infer<typeof editSchema>;
 
@@ -117,7 +118,11 @@ function EditMemberModal({ member, onClose }: { member: User; onClose: () => voi
   const role = watch('role');
   const blood = watch('bloodGroup');
   const update = useMutation({
-    mutationFn: (d: EditForm) => updateMember(member.id, { name: d.name, phone: d.phone, email: d.email || null, role: d.role, bloodGroup: d.bloodGroup || null, emergencyContact: d.emergencyContact || null }),
+    mutationFn: (d: EditForm) => updateMember(member.id, {
+      name: d.name, phone: d.phone, email: d.email || null, role: d.role,
+      bloodGroup: d.bloodGroup || null, emergencyContact: d.emergencyContact || null,
+      ...(d.newPassword ? { password: d.newPassword } : {}),
+    }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['members'] }); qc.invalidateQueries({ queryKey: ['member', member.id] }); onClose(); },
   });
 
@@ -157,6 +162,10 @@ function EditMemberModal({ member, onClose }: { member: User; onClose: () => voi
             </div>
           </div>
           <Input label="Emergency Contact (optional)" type="tel" leftIcon={<AlertCircle size={16} />} error={errors.emergencyContact?.message} {...register('emergencyContact')} />
+          <div className="border-t border-slate-100 pt-4">
+            <Input label="Reset Password (optional)" type="password" placeholder="Leave blank to keep current password" leftIcon={<Lock size={16} />} error={errors.newPassword?.message} {...register('newPassword')} />
+            <p className="text-[11px] text-slate-400 mt-1">Only fill this to change the member's login password.</p>
+          </div>
           {update.error && <p className="text-[12px] text-red-500">{(update.error as any)?.response?.data?.message ?? 'Failed'}</p>}
           <Button type="submit" fullWidth size="lg" loading={isSubmitting}>Save Changes</Button>
         </form>
