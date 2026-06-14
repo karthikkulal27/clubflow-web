@@ -1,5 +1,6 @@
 import type { InputHTMLAttributes, ReactNode } from 'react';
-import { forwardRef } from 'react';
+import { forwardRef, useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -8,17 +9,12 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   rightIcon?: ReactNode;
 }
 
-/* Exact values from mobile Input.tsx:
-   container gap: spacing[1]+2 = 6px
-   label: fontSize.sm=13px, fontWeight.medium
-   wrapper: borderWidth 1.5, borderRadius radius.lg=14px, minHeight 52px
-   input: fontSize.base=15px, px spacing[4]=16px, py spacing[3]=12px
-   leftIcon: marginLeft spacing[4]=16px
-   inputWithLeftIcon: paddingLeft spacing[2]=8px
-   rightIcon: marginRight spacing[3]=12px
-   error: fontSize.xs=11px                                              */
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, error, leftIcon, rightIcon, className = '', ...rest }, ref) => {
+  ({ label, error, leftIcon, rightIcon, className = '', type, ...rest }, ref) => {
+    const [showPassword, setShowPassword] = useState(false);
+    const isPassword = type === 'password';
+    const inputType = isPassword ? (showPassword ? 'text' : 'password') : type;
+
     return (
       <div className="flex flex-col" style={{ gap: 6 }}>
         {label && (
@@ -34,12 +30,23 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            type={inputType}
             {...rest}
             className={`flex-1 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none bg-transparent py-3 ${
-              leftIcon ? 'pl-2 pr-4' : 'px-4'
-            } ${rightIcon ? 'pr-2' : ''} ${className}`}
+              leftIcon ? 'pl-2' : 'px-4'
+            } ${(rightIcon || isPassword) ? 'pr-2' : 'pr-4'} ${className}`}
           />
-          {rightIcon && (
+          {isPassword && (
+            <button
+              type="button"
+              onClick={() => setShowPassword((v) => !v)}
+              className="mr-3 text-slate-400 flex-shrink-0 flex items-center hover:text-slate-600"
+              tabIndex={-1}
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          )}
+          {!isPassword && rightIcon && (
             <span className="mr-3 text-slate-400 flex-shrink-0 flex items-center">{rightIcon}</span>
           )}
         </div>
