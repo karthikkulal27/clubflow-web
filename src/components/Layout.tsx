@@ -33,7 +33,7 @@ export default function Layout() {
     queryFn: () => getNotifications(),
     refetchInterval: 60_000,
   });
-  const unreadCount = notifData?.items?.filter((n: any) => !n.isRead).length ?? 0;
+  const unreadCount = notifData?.unreadCount ?? 0;
 
   return (
     <div className="flex flex-col min-h-dvh bg-[#f8fafc]">

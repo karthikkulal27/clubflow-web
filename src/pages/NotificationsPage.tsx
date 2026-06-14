@@ -26,7 +26,7 @@ export default function NotificationsPage() {
 
   const { data, isLoading } = useQuery({ queryKey: ['notifications'], queryFn: () => getNotifications() });
   const items = data?.items ?? [];
-  const unreadCount = items.filter((n) => !n.isRead).length;
+  const unreadCount = data?.unreadCount ?? 0;
 
   const markOne = useMutation({
     mutationFn: markNotificationRead,
