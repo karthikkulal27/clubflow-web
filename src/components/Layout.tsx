@@ -1,9 +1,11 @@
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CreditCard, BarChart3, Calendar,
-  Users, MoreHorizontal,
+  Users, MoreHorizontal, Bell,
 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../hooks/useAuth';
+import { getNotifications } from '../lib/notifications.api';
 
 const memberNav = [
   { to: '/dashboard', label: 'Home', Icon: LayoutDashboard },
@@ -23,8 +25,15 @@ const adminNav = [
 
 export default function Layout() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'ADMIN';
   const navItems = isAdmin ? adminNav : memberNav;
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => getNotifications(),
+    refetchInterval: 60_000,
+  });
+  const unreadCount = notifData?.items?.filter((n: any) => !n.isRead).length ?? 0;
 
   return (
     <div className="flex flex-col min-h-dvh bg-[#f8fafc]">
@@ -39,6 +48,17 @@ export default function Layout() {
             <p className="text-[11px] text-slate-400 leading-tight">{user?.name} · {user?.role}</p>
           </div>
         </div>
+        <button
+          onClick={() => navigate('/notifications')}
+          className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-slate-100 transition-colors"
+        >
+          <Bell size={20} className="text-slate-600" />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
+        </button>
       </header>
 
       {/* Page */}
