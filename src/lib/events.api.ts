@@ -24,6 +24,17 @@ export async function createEvent(payload: {
   return data.data;
 }
 
+export async function updateEvent(eventId: string, payload: {
+  title?: string;
+  description?: string;
+  startAt?: string;
+  endAt?: string;
+  location?: string;
+}): Promise<Event> {
+  const { data } = await api.patch<ApiResponse<Event>>(`/events/${eventId}`, payload);
+  return data.data;
+}
+
 export async function rsvpEvent(eventId: string, status: 'GOING' | 'NOT_GOING' | 'MAYBE'): Promise<void> {
   await api.post(`/events/${eventId}/rsvp`, { status });
 }

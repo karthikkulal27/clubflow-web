@@ -58,6 +58,7 @@ export async function getProfile(): Promise<User> {
 export async function updateProfile(payload: Partial<{
   name: string; phone: string; email: string | null; avatarUrl: string | null;
   dateOfBirth: string | null; bloodGroup: string | null; emergencyContact: string | null;
+  password: string;
 }>): Promise<User> {
   const { data } = await api.patch<ApiResponse<User>>('/members/me', payload);
   return data.data;

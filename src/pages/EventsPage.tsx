@@ -4,13 +4,15 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { Calendar, MapPin, Plus, X, Users, Check, Minus, HelpCircle, ChevronRight } from 'lucide-react';
+import { Calendar, MapPin, Plus, X, Users, Check, Minus, HelpCircle, ChevronRight, Pencil } from 'lucide-react';
 import { authStore } from '../store/auth.store';
-import { getEvents, getEvent, createEvent, rsvpEvent } from '../lib/events.api';
+import { getEvents, getEvent, createEvent, updateEvent, rsvpEvent } from '../lib/events.api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 
-const createSchema = z.object({
+const todayStr = new Date().toISOString().slice(0, 10);
+
+const eventSchema = z.object({
   title: z.string().min(2, 'Title required'),
   description: z.string().optional(),
   date: z.string().min(1, 'Select a date'),
@@ -18,41 +20,53 @@ const createSchema = z.object({
   endTime: z.string().optional(),
   location: z.string().optional(),
 });
-type CreateForm = z.infer<typeof createSchema>;
+type EventForm = z.infer<typeof eventSchema>;
 
-function CreateEventModal({ onClose }: { onClose: () => void }) {
+function EventFormModal({
+  onClose,
+  eventId,
+  defaultValues,
+}: {
+  onClose: () => void;
+  eventId?: string;
+  defaultValues?: Partial<EventForm>;
+}) {
   const qc = useQueryClient();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<CreateForm>({ resolver: zodResolver(createSchema) });
-  const create = useMutation({
-    mutationFn: createEvent,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['events'] }); onClose(); },
+  const isEditing = !!eventId;
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<EventForm>({
+    resolver: zodResolver(eventSchema),
+    defaultValues,
   });
 
-  async function onSubmit(data: CreateForm) {
-    await create.mutateAsync({
-      title: data.title,
-      description: data.description || undefined,
-      startAt: `${data.date}T${data.startTime}:00.000Z`,
-      endAt: data.endTime ? `${data.date}T${data.endTime}:00.000Z` : undefined,
-      location: data.location || undefined,
-    });
-  }
+  const mutation = useMutation({
+    mutationFn: (data: EventForm) => {
+      const payload = {
+        title: data.title,
+        description: data.description || undefined,
+        startAt: `${data.date}T${data.startTime}:00.000Z`,
+        endAt: data.endTime ? `${data.date}T${data.endTime}:00.000Z` : undefined,
+        location: data.location || undefined,
+      };
+      return isEditing ? updateEvent(eventId, payload) : createEvent(payload);
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['events'] }); onClose(); },
+  });
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="bg-white rounded-[24px] w-full max-w-md shadow-xl overflow-hidden max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center px-6 pt-6 pb-0">
-          <h3 className="text-[18px] font-semibold text-slate-900">Create Event</h3>
+          <h3 className="text-[18px] font-semibold text-slate-900">{isEditing ? 'Edit Event' : 'Create Event'}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 p-6">
+        <form onSubmit={handleSubmit((d) => mutation.mutateAsync(d))} className="flex flex-col gap-4 p-6">
           <Input label="Title" placeholder="e.g. Team practice" error={errors.title?.message} {...register('title')} />
           <div className="grid grid-cols-2 gap-3">
             <div className="flex flex-col" style={{ gap: 6 }}>
               <label className="text-[13px] font-medium text-slate-600">Date</label>
               <div className="flex items-center min-h-[52px] rounded-[14px] border-[1.5px] border-slate-200 bg-white px-3 gap-2 focus-within:border-primary transition-colors">
                 <Calendar size={15} className="text-slate-400 flex-shrink-0" />
-                <input type="date" className="flex-1 text-[14px] text-slate-900 outline-none bg-transparent py-3" {...register('date')} />
+                <input type="date" min={isEditing ? undefined : todayStr} className="flex-1 text-[14px] text-slate-900 outline-none bg-transparent py-3" {...register('date')} />
               </div>
               {errors.date && <p className="text-[11px] text-danger">{errors.date.message}</p>}
             </div>
@@ -76,8 +90,8 @@ function CreateEventModal({ onClose }: { onClose: () => void }) {
             <textarea {...register('description')} rows={3} placeholder="Any additional details…"
               className="rounded-[14px] border-[1.5px] border-slate-200 px-4 py-3 text-[15px] text-slate-900 placeholder:text-slate-400 outline-none focus:border-primary resize-none" />
           </div>
-          {create.error && <p className="text-[11px] text-danger">{(create.error as any)?.response?.data?.message ?? 'Failed'}</p>}
-          <Button type="submit" fullWidth size="lg" loading={isSubmitting}>Create Event</Button>
+          {mutation.error && <p className="text-[11px] text-danger">{(mutation.error as any)?.response?.data?.message ?? 'Failed'}</p>}
+          <Button type="submit" fullWidth size="lg" loading={isSubmitting}>{isEditing ? 'Save Changes' : 'Create Event'}</Button>
         </form>
       </div>
     </div>
@@ -91,7 +105,7 @@ const RSVP_OPTIONS = [
   { status: 'NOT_GOING', label: "Can't Go", icon: <Minus size={16} />, bg: '#fee2e2', text: '#ef4444', border: '#fca5a5' },
 ] as const;
 
-function EventDetailModal({ eventId, onClose }: { eventId: string; onClose: () => void }) {
+function EventDetailModal({ eventId, onClose, onEdit }: { eventId: string; onClose: () => void; onEdit?: (event: any) => void }) {
   const qc = useQueryClient();
   const { data: event, isLoading } = useQuery({ queryKey: ['event', eventId], queryFn: () => getEvent(eventId) });
   const rsvp = useMutation({
@@ -106,7 +120,15 @@ function EventDetailModal({ eventId, onClose }: { eventId: string; onClose: () =
       <div className="bg-white rounded-[24px] w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-center px-6 pt-5 pb-4 border-b border-slate-100">
           <p className="text-[17px] font-bold text-slate-900">Event Details</p>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
+          <div className="flex items-center gap-2">
+            {onEdit && event && (
+              <button onClick={() => { onEdit(event); onClose(); }}
+                className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-slate-200 transition-colors">
+                <Pencil size={14} />
+              </button>
+            )}
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
+          </div>
         </div>
 
         {isLoading ? (
@@ -218,8 +240,10 @@ function EventDetailModal({ eventId, onClose }: { eventId: string; onClose: () =
 
 export default function EventsPage() {
   const user = authStore.getUser();
+  const isAdmin = user?.role === 'ADMIN';
   const [showCreate, setShowCreate] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [editingEvent, setEditingEvent] = useState<{ id: string; defaultValues: Partial<EventForm> } | null>(null);
   const [filter, setFilter] = useState<'upcoming' | 'all'>('upcoming');
 
   const { data, isLoading } = useQuery({
@@ -236,7 +260,7 @@ export default function EventsPage() {
           <p className="text-[20px] font-bold text-slate-900">Events</p>
           <p className="text-[13px] text-slate-400 mt-0.5">{events.length} {filter === 'upcoming' ? 'upcoming' : 'total'}</p>
         </div>
-        {user?.role === 'ADMIN' && (
+        {isAdmin && (
           <button onClick={() => setShowCreate(true)}
             className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shadow-[0_2px_8px_rgba(37,99,235,0.3)]">
             <Plus size={18} color="white" />
@@ -294,8 +318,35 @@ export default function EventsPage() {
         </div>
       )}
 
-      {showCreate && <CreateEventModal onClose={() => setShowCreate(false)} />}
-      {selectedEventId && <EventDetailModal eventId={selectedEventId} onClose={() => setSelectedEventId(null)} />}
+      {showCreate && <EventFormModal onClose={() => setShowCreate(false)} />}
+      {selectedEventId && (
+        <EventDetailModal
+          eventId={selectedEventId}
+          onClose={() => setSelectedEventId(null)}
+          onEdit={isAdmin ? (ev) => {
+            const startAt = new Date(ev.startAt);
+            const endAt = (ev as any).endAt ? new Date((ev as any).endAt) : null;
+            setEditingEvent({
+              id: ev.id,
+              defaultValues: {
+                title: ev.title,
+                description: ev.description ?? '',
+                date: ev.startAt.slice(0, 10),
+                startTime: `${String(startAt.getUTCHours()).padStart(2, '0')}:${String(startAt.getUTCMinutes()).padStart(2, '0')}`,
+                endTime: endAt ? `${String(endAt.getUTCHours()).padStart(2, '0')}:${String(endAt.getUTCMinutes()).padStart(2, '0')}` : '',
+                location: ev.location ?? '',
+              },
+            });
+          } : undefined}
+        />
+      )}
+      {editingEvent && (
+        <EventFormModal
+          eventId={editingEvent.id}
+          defaultValues={editingEvent.defaultValues}
+          onClose={() => setEditingEvent(null)}
+        />
+      )}
     </div>
   );
 }

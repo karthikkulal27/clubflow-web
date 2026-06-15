@@ -17,6 +17,17 @@ export async function addExpense(payload: {
   return data.data;
 }
 
+export async function updateExpense(id: string, payload: {
+  title?: string;
+  amount?: number;
+  expenseDate?: string;
+  description?: string;
+  category?: string;
+}): Promise<Expense> {
+  const { data } = await api.patch<ApiResponse<Expense>>(`/expenses/${id}`, payload);
+  return data.data;
+}
+
 export async function deleteExpense(id: string): Promise<void> {
   await api.delete(`/expenses/${id}`);
 }
@@ -62,6 +73,11 @@ export async function createDuesPlan(payload: {
   return data.data;
 }
 
+export async function updateDuesPlan(id: string, payload: { label?: string; amount?: number }): Promise<DuesPlan> {
+  const { data } = await api.patch<ApiResponse<DuesPlan>>(`/dues-plans/${id}`, payload);
+  return data.data;
+}
+
 export async function deleteDuesPlan(id: string): Promise<void> {
   await api.delete(`/dues-plans/${id}`);
 }
@@ -91,4 +107,13 @@ export async function createSpecialCollection(payload: {
 }): Promise<SpecialCollection> {
   const { data } = await api.post<ApiResponse<SpecialCollection>>('/special-collections', payload);
   return data.data;
+}
+
+export async function updateSpecialCollection(id: string, payload: { label?: string; amount?: number; dueDate?: string }): Promise<SpecialCollection> {
+  const { data } = await api.patch<ApiResponse<SpecialCollection>>(`/special-collections/${id}`, payload);
+  return data.data;
+}
+
+export async function deleteSpecialCollection(id: string): Promise<void> {
+  await api.delete(`/special-collections/${id}`);
 }

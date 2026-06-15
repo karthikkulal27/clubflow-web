@@ -20,6 +20,11 @@ const schema = z.object({
   dateOfBirth: z.string().optional(),
   bloodGroup: z.string().optional(),
   emergencyContact: z.string().min(10, 'Enter valid number').or(z.literal('')).optional(),
+  newPassword: z.string().refine((v) => v === '' || v.length >= 6, 'Min 6 characters').optional(),
+  confirmPassword: z.string().optional(),
+}).refine((d) => !d.newPassword || d.newPassword === d.confirmPassword, {
+  message: 'Passwords do not match',
+  path: ['confirmPassword'],
 });
 type FormData = z.infer<typeof schema>;
 
@@ -102,6 +107,7 @@ export default function ProfilePage() {
       dateOfBirth: formData.dateOfBirth || null,
       bloodGroup: formData.bloodGroup || null,
       emergencyContact: formData.emergencyContact || null,
+      ...(formData.newPassword ? { password: formData.newPassword } : {}),
     });
   }
 
@@ -221,6 +227,12 @@ export default function ProfilePage() {
 
           <Input label="Emergency Contact (optional)" type="tel" leftIcon={<AlertCircle size={16} />}
             error={errors.emergencyContact?.message} {...register('emergencyContact')} />
+
+          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-1">Change Password</p>
+          <Input label="New Password (optional)" type="password" leftIcon={<Shield size={16} />}
+            placeholder="Min 6 characters" error={errors.newPassword?.message} {...register('newPassword')} />
+          <Input label="Confirm New Password" type="password" leftIcon={<Shield size={16} />}
+            placeholder="Repeat new password" error={errors.confirmPassword?.message} {...register('confirmPassword')} />
 
           {update.error && (
             <div className="bg-[#fef2f2] border border-[#fecaca] text-[#dc2626] text-[13px] rounded-[10px] px-3 py-2.5">

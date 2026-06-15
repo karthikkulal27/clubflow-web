@@ -4,12 +4,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format, addMonths, subMonths } from 'date-fns';
-import { Receipt, Trash2, Calendar, TrendingUp, TrendingDown, Wallet, Zap, ChevronLeft, ChevronRight, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Receipt, Trash2, Calendar, TrendingUp, TrendingDown, Wallet, Zap, ChevronLeft, ChevronRight, CheckCircle, Clock, AlertCircle, Pencil, X } from 'lucide-react';
 import { authStore } from '../store/auth.store';
 import {
-  getExpenses, addExpense, deleteExpense,
-  getPaymentStats, getDuesPlans, createDuesPlan, deleteDuesPlan,
-  getSpecialCollections, createSpecialCollection,
+  getExpenses, addExpense, updateExpense, deleteExpense,
+  getPaymentStats, getDuesPlans, createDuesPlan, updateDuesPlan, deleteDuesPlan,
+  getSpecialCollections, createSpecialCollection, updateSpecialCollection, deleteSpecialCollection,
+  type DuesPlan, type SpecialCollection,
 } from '../lib/finance.api';
 import { getAllPayments, markPaymentPaid } from '../lib/payments.api';
 import { Card } from '../components/ui/Card';
@@ -40,26 +41,36 @@ const expenseSchema = z.object({
 });
 type ExpenseForm = z.infer<typeof expenseSchema>;
 
-function AddExpenseModal({ onClose }: { onClose: () => void }) {
+function ExpenseModal({
+  onClose,
+  expenseId,
+  defaultValues,
+}: {
+  onClose: () => void;
+  expenseId?: string;
+  defaultValues?: Partial<ExpenseForm>;
+}) {
   const qc = useQueryClient();
-  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ExpenseForm>({ resolver: zodResolver(expenseSchema) });
-  const add = useMutation({
-    mutationFn: addExpense,
+  const isEditing = !!expenseId;
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<ExpenseForm>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues,
+  });
+  const mutation = useMutation({
+    mutationFn: (data: ExpenseForm) => isEditing
+      ? updateExpense(expenseId, { ...data, expenseDate: `${data.expenseDate}T00:00:00.000Z` })
+      : addExpense({ ...data, expenseDate: `${data.expenseDate}T00:00:00.000Z` }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['expenses'] }); onClose(); },
   });
-
-  async function onSubmit(data: ExpenseForm) {
-    await add.mutateAsync({ ...data, expenseDate: `${data.expenseDate}T00:00:00.000Z` });
-  }
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="bg-white rounded-[24px] w-full max-w-md shadow-xl overflow-hidden">
         <div className="flex justify-between items-center px-6 pt-6 pb-0">
-          <h3 className="text-[18px] font-semibold text-slate-900">Add Expense</h3>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">✕</button>
+          <h3 className="text-[18px] font-semibold text-slate-900">{isEditing ? 'Edit Expense' : 'Add Expense'}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
         </div>
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4 p-6">
+        <form onSubmit={handleSubmit((d) => mutation.mutateAsync(d))} className="flex flex-col gap-4 p-6">
           <Input label="Title" placeholder="e.g. Ground booking" error={errors.title?.message} {...register('title')} />
           <div className="grid grid-cols-2 gap-3">
             <Input label="Amount (₹)" type="number" placeholder="0" error={errors.amount?.message}
@@ -82,8 +93,8 @@ function AddExpenseModal({ onClose }: { onClose: () => void }) {
             </select>
           </div>
           <Input label="Reason (optional)" placeholder="Why was this spent?" {...register('description')} />
-          {add.error && <p className="text-[11px] text-danger">{(add.error as any)?.response?.data?.message ?? 'Failed'}</p>}
-          <Button type="submit" fullWidth size="lg" loading={isSubmitting}>Add Expense</Button>
+          {mutation.error && <p className="text-[11px] text-danger">{(mutation.error as any)?.response?.data?.message ?? 'Failed'}</p>}
+          <Button type="submit" fullWidth size="lg" loading={isSubmitting}>{isEditing ? 'Save Changes' : 'Add Expense'}</Button>
         </form>
       </div>
     </div>
@@ -215,6 +226,91 @@ function SpecialCollectionModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+/* ── Edit Dues Plan Modal ─────────────────────────── */
+const editDuesSchema = z.object({
+  label: z.string().optional(),
+  amount: z.number({ error: 'Enter valid amount' }).min(1, 'Min ₹1'),
+});
+type EditDuesForm = z.infer<typeof editDuesSchema>;
+
+function EditDuesPlanModal({ plan, onClose }: { plan: DuesPlan; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<EditDuesForm>({
+    resolver: zodResolver(editDuesSchema),
+    defaultValues: { label: plan.label ?? '', amount: Number(plan.amount) },
+  });
+  const mutation = useMutation({
+    mutationFn: (d: EditDuesForm) => updateDuesPlan(plan.id, d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['dues-plans'] }); onClose(); },
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="bg-white rounded-[24px] w-full max-w-md shadow-xl overflow-hidden">
+        <div className="flex justify-between items-center px-6 pt-6 pb-0">
+          <h3 className="text-[18px] font-semibold text-slate-900">Edit Dues Plan</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit((d) => mutation.mutateAsync(d))} className="flex flex-col gap-4 p-6">
+          <Input label="Label (optional)" placeholder="e.g. Monthly dues 2026" {...register('label')} />
+          <Input label="Amount per member (₹)" type="number" error={errors.amount?.message}
+            {...register('amount', { valueAsNumber: true })} />
+          <p className="text-[12px] text-slate-400 -mt-2">Updating the amount will apply to all pending payments in this plan.</p>
+          {mutation.error && <p className="text-[11px] text-danger">{(mutation.error as any)?.response?.data?.message ?? 'Failed'}</p>}
+          <Button type="submit" fullWidth size="lg" loading={isSubmitting}>Save Changes</Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ── Edit Special Collection Modal ─────────────────────────── */
+const editCollectionSchema = z.object({
+  label: z.string().min(1, 'Name required'),
+  amount: z.number({ error: 'Enter valid amount' }).min(1, 'Min ₹1'),
+  dueDate: z.string().min(1, 'Select due date'),
+});
+type EditCollectionForm = z.infer<typeof editCollectionSchema>;
+
+function EditSpecialCollectionModal({ col, onClose }: { col: SpecialCollection; onClose: () => void }) {
+  const qc = useQueryClient();
+  const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<EditCollectionForm>({
+    resolver: zodResolver(editCollectionSchema),
+    defaultValues: { label: col.label, amount: Number(col.amount), dueDate: col.dueDate.slice(0, 10) },
+  });
+  const mutation = useMutation({
+    mutationFn: (d: EditCollectionForm) => updateSpecialCollection(col.id, d),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['special-collections'] }); onClose(); },
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
+      <div className="bg-white rounded-[24px] w-full max-w-md shadow-xl overflow-hidden">
+        <div className="flex justify-between items-center px-6 pt-6 pb-0">
+          <h3 className="text-[18px] font-semibold text-slate-900">Edit Collection</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><X size={16} /></button>
+        </div>
+        <form onSubmit={handleSubmit((d) => mutation.mutateAsync(d))} className="flex flex-col gap-4 p-6">
+          <Input label="Name" error={errors.label?.message} {...register('label')} />
+          <Input label="Amount per member (₹)" type="number" error={errors.amount?.message}
+            {...register('amount', { valueAsNumber: true })} />
+          <div className="flex flex-col" style={{ gap: 6 }}>
+            <label className="text-[13px] font-medium text-slate-600">Due date</label>
+            <div className="flex items-center min-h-[52px] rounded-[14px] border-[1.5px] border-slate-200 bg-white px-3 gap-2 focus-within:border-primary transition-colors">
+              <Calendar size={15} className="text-slate-400 flex-shrink-0" />
+              <input type="date" className="flex-1 text-[15px] text-slate-900 outline-none bg-transparent py-3" {...register('dueDate')} />
+            </div>
+            {errors.dueDate && <p className="text-[11px] text-danger">{errors.dueDate.message}</p>}
+          </div>
+          <p className="text-[12px] text-slate-400 -mt-2">Updating amount or due date applies to all pending payments.</p>
+          {mutation.error && <p className="text-[11px] text-danger">{(mutation.error as any)?.response?.data?.message ?? 'Failed'}</p>}
+          <Button type="submit" fullWidth size="lg" loading={isSubmitting}>Save Changes</Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Page ─────────────────────────── */
 type Modal = 'expense' | 'dues' | 'collection' | null;
 
@@ -222,6 +318,9 @@ export default function FinancePage() {
   const user = authStore.getUser();
   const isAdmin = user?.role === 'ADMIN';
   const [modal, setModal] = useState<Modal>(null);
+  const [editingExpense, setEditingExpense] = useState<{ id: string; defaultValues: Partial<ExpenseForm> } | null>(null);
+  const [editingPlan, setEditingPlan] = useState<DuesPlan | null>(null);
+  const [editingCollection, setEditingCollection] = useState<SpecialCollection | null>(null);
   const qc = useQueryClient();
 
   // Collections section state
@@ -243,6 +342,7 @@ export default function FinancePage() {
 
   const removeExpense = useMutation({ mutationFn: deleteExpense, onSuccess: () => qc.invalidateQueries({ queryKey: ['expenses'] }) });
   const removePlan = useMutation({ mutationFn: deleteDuesPlan, onSuccess: () => qc.invalidateQueries({ queryKey: ['dues-plans'] }) });
+  const removeCollection = useMutation({ mutationFn: deleteSpecialCollection, onSuccess: () => qc.invalidateQueries({ queryKey: ['special-collections'] }) });
   const markPaid = useMutation({
     mutationFn: markPaymentPaid,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['all-payments'] }); qc.invalidateQueries({ queryKey: ['payment-stats'] }); },
@@ -418,9 +518,14 @@ export default function FinancePage() {
                     {plan.periods.length > 0 && ` · ${MONTHS[plan.periods[0].month - 1]} ${plan.periods[0].year}${plan.periods.length > 1 ? ` – ${MONTHS[plan.periods[plan.periods.length - 1].month - 1]} ${plan.periods[plan.periods.length - 1].year}` : ''}`}
                   </p>
                 </div>
-                <button onClick={() => removePlan.mutate(plan.id)} className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center flex-shrink-0">
-                  <Trash2 size={12} className="text-[#ef4444]" />
-                </button>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setEditingPlan(plan)} className="w-7 h-7 rounded-full bg-[#eff6ff] flex items-center justify-center flex-shrink-0">
+                    <Pencil size={12} className="text-primary" />
+                  </button>
+                  <button onClick={() => removePlan.mutate(plan.id)} className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center flex-shrink-0">
+                    <Trash2 size={12} className="text-[#ef4444]" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -442,6 +547,14 @@ export default function FinancePage() {
                   <p className="text-[11px] text-slate-400">{FULL_MONTHS[c.month - 1]} {c.year} · Due {format(new Date(c.dueDate), 'dd MMM')}</p>
                 </div>
                 <p className="text-[15px] font-semibold text-[#f59e0b]">₹{Number(c.amount).toLocaleString('en-IN')}</p>
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => setEditingCollection(c)} className="w-7 h-7 rounded-full bg-[#fffbeb] flex items-center justify-center flex-shrink-0">
+                    <Pencil size={12} className="text-[#f59e0b]" />
+                  </button>
+                  <button onClick={() => removeCollection.mutate(c.id)} className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center flex-shrink-0">
+                    <Trash2 size={12} className="text-[#ef4444]" />
+                  </button>
+                </div>
               </div>
             ))}
           </Card>
@@ -480,9 +593,23 @@ export default function FinancePage() {
                   <div className="flex flex-col items-end gap-2">
                     <p className="text-[15px] font-bold text-slate-900">₹{Number(e.amount).toLocaleString('en-IN')}</p>
                     {isAdmin && (
-                      <button onClick={() => removeExpense.mutate(e.id)} className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center">
-                        <Trash2 size={12} className="text-[#ef4444]" />
-                      </button>
+                      <div className="flex items-center gap-1.5">
+                        <button onClick={() => setEditingExpense({
+                          id: e.id,
+                          defaultValues: {
+                            title: e.title,
+                            amount: Number(e.amount),
+                            expenseDate: e.expenseDate.slice(0, 10),
+                            description: e.description ?? '',
+                            category: e.category ?? '',
+                          },
+                        })} className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center">
+                          <Pencil size={12} className="text-slate-500" />
+                        </button>
+                        <button onClick={() => removeExpense.mutate(e.id)} className="w-7 h-7 rounded-full bg-[#fee2e2] flex items-center justify-center">
+                          <Trash2 size={12} className="text-[#ef4444]" />
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -500,9 +627,18 @@ export default function FinancePage() {
         </div>
       )}
 
-      {modal === 'expense' && <AddExpenseModal onClose={() => setModal(null)} />}
+      {modal === 'expense' && <ExpenseModal onClose={() => setModal(null)} />}
       {modal === 'dues' && <ScheduleDuesModal onClose={() => setModal(null)} />}
       {modal === 'collection' && <SpecialCollectionModal onClose={() => setModal(null)} />}
+      {editingExpense && (
+        <ExpenseModal
+          expenseId={editingExpense.id}
+          defaultValues={editingExpense.defaultValues}
+          onClose={() => setEditingExpense(null)}
+        />
+      )}
+      {editingPlan && <EditDuesPlanModal plan={editingPlan} onClose={() => setEditingPlan(null)} />}
+      {editingCollection && <EditSpecialCollectionModal col={editingCollection} onClose={() => setEditingCollection(null)} />}
     </div>
   );
 }

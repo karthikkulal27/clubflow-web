@@ -19,6 +19,11 @@ export async function publishAnnouncement(id: string): Promise<Announcement> {
   return data.data;
 }
 
+export async function updateAnnouncement(id: string, payload: { title: string; body: string }): Promise<Announcement> {
+  const { data } = await api.patch<ApiResponse<Announcement>>(`/announcements/${id}`, payload);
+  return data.data;
+}
+
 export async function deleteAnnouncement(id: string): Promise<void> {
   await api.delete(`/announcements/${id}`);
 }
