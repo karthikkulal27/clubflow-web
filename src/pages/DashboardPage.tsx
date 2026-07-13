@@ -266,7 +266,7 @@ function MemberDashboard() {
         <GradientCard
           label="Available Balance"
           amount={data.finance.availableBalance}
-          simple={[{ label: 'Total Collected', value: `₹${Number(data.finance.totalCollection).toLocaleString('en-IN')}` }]}
+          simple={[{ label: 'Total Collected', value: `₹${Number(data.finance.totalCollection ?? 0).toLocaleString('en-IN')}` }]}
         />
       )}
 
@@ -354,7 +354,7 @@ function AdminDashboard() {
         <GradientCard
           label="Available Balance"
           amount={data.stats.availableBalance}
-          stats={{ collection: data.stats.totalCollection, expenses: data.stats.totalExpenses }}
+          stats={{ collection: data.stats.totalIncome ?? data.stats.totalCollection ?? 0, expenses: data.stats.totalExpenses }}
         />
       )}
 
@@ -366,7 +366,7 @@ function AdminDashboard() {
             <StatCard label="Total Members" value={data.stats.totalMembers} icon={<Users size={18} className="text-primary" />} iconBg="bg-primary-light" />
             <StatCard label="Paid" value={data.stats.paidCount} icon={<TrendingUp size={18} className="text-[#22c55e]" />} iconBg="bg-[#dcfce7]" />
             <StatCard label="Pending" value={data.stats.pendingCount} icon={<Clock size={18} className="text-[#f59e0b]" />} iconBg="bg-[#fef3c7]" />
-            <StatCard label="Collected" value={`₹${Number(data.stats.totalCollection).toLocaleString('en-IN')}`} icon={<Wallet size={18} className="text-primary" />} iconBg="bg-primary-light" />
+            <StatCard label="Collected" value={`₹${Number(data.stats.totalIncome ?? data.stats.totalCollection ?? 0).toLocaleString('en-IN')}`} icon={<Wallet size={18} className="text-primary" />} iconBg="bg-primary-light" />
           </div>
         </section>
       )}

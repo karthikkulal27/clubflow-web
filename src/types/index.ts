@@ -108,7 +108,10 @@ export interface AdminDashboard {
     totalMembers: number;
     paidCount: number;
     pendingCount: number;
-    totalCollection: number;
+    totalMemberPayments?: number;
+    totalAdminIncome?: number;
+    totalIncome?: number;
+    totalCollection?: number;
     totalExpenses: number;
     availableBalance: number;
   };

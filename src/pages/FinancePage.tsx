@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -12,6 +13,8 @@ import {
   getSpecialCollections, createSpecialCollection, updateSpecialCollection, deleteSpecialCollection,
   type DuesPlan, type SpecialCollection,
 } from '../lib/finance.api';
+import { getAdminDashboard } from '../lib/dashboard.api';
+import { getIncome } from '../lib/income.api';
 import { getAllPayments, markPaymentPaid } from '../lib/payments.api';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -317,6 +320,7 @@ type Modal = 'expense' | 'dues' | 'collection' | null;
 export default function FinancePage() {
   const user = authStore.getUser();
   const isAdmin = user?.role === 'ADMIN';
+  const navigate = useNavigate();
   const [modal, setModal] = useState<Modal>(null);
   const [editingExpense, setEditingExpense] = useState<{ id: string; defaultValues: Partial<ExpenseForm> } | null>(null);
   const [editingPlan, setEditingPlan] = useState<DuesPlan | null>(null);
@@ -331,6 +335,8 @@ export default function FinancePage() {
   const collYear = collDate.getFullYear();
 
   const { data: stats } = useQuery({ queryKey: ['payment-stats'], queryFn: () => getPaymentStats() });
+  const { data: dashboard } = useQuery({ queryKey: ['dashboard'], queryFn: () => getAdminDashboard(), enabled: isAdmin });
+  const { data: incomeEntries = [] } = useQuery({ queryKey: ['income'], queryFn: () => getIncome(), enabled: isAdmin });
   const { data: expData, isLoading: expLoading } = useQuery({ queryKey: ['expenses'], queryFn: () => getExpenses() });
   const { data: duesPlans } = useQuery({ queryKey: ['dues-plans'], queryFn: getDuesPlans, enabled: isAdmin });
   const { data: specialCollections } = useQuery({ queryKey: ['special-collections'], queryFn: getSpecialCollections, enabled: isAdmin });
@@ -350,10 +356,16 @@ export default function FinancePage() {
 
   const expenses = expData?.items ?? [];
   const totalExpenses = expenses.reduce((s, e) => s + Number(e.amount), 0);
-  const collectedAmount = Number(stats?.collectedAmount ?? 0);
-  const balance = collectedAmount - totalExpenses;
+
+  // Use dashboard data if available (includes both member payments + admin income)
+  const collectedAmount = dashboard?.stats?.totalIncome
+    ? Number(dashboard.stats.totalIncome)
+    : (stats?.collectedAmount ? Number(stats.collectedAmount) : 0);
+
+  const balance = isFinite(collectedAmount) ? collectedAmount - totalExpenses : 0;
   const collPayments = collData?.items ?? [];
   const collTotal = collData?.total ?? 0;
+  const totalAdminIncome = incomeEntries.reduce((s, e) => s + Number(e.amount), 0);
 
   return (
     <div className="px-5 pt-3 pb-8 flex flex-col gap-6">
@@ -397,15 +409,22 @@ export default function FinancePage() {
 
       {/* Admin action buttons */}
       {isAdmin && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3">
           {[
             { label: 'Schedule Dues', icon: <Calendar size={16} />, color: '#2563eb', bg: '#eff6ff', action: 'dues' as Modal },
+            { label: 'Add Income', icon: <TrendingUp size={16} />, color: '#16a34a', bg: '#dcfce7', action: null },
             { label: 'Collection', icon: <Zap size={16} />, color: '#f59e0b', bg: '#fffbeb', action: 'collection' as Modal },
             { label: 'Add Expense', icon: <Receipt size={16} />, color: '#ef4444', bg: '#fef2f2', action: 'expense' as Modal },
           ].map(({ label, icon, color, bg, action }) => (
             <button
-              key={action}
-              onClick={() => setModal(action)}
+              key={label}
+              onClick={() => {
+                if (label === 'Add Income') {
+                  navigate('/income');
+                } else {
+                  setModal(action);
+                }
+              }}
               style={{ background: bg, color }}
               className="flex flex-col items-center gap-1.5 rounded-[14px] py-3 px-2 font-semibold text-[11px] transition-opacity active:opacity-70"
             >

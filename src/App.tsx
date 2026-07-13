@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import PaymentsPage from './pages/PaymentsPage';
 import FinancePage from './pages/FinancePage';
+import IncomePage from './pages/IncomePage';
 import EventsPage from './pages/EventsPage';
 import AnnouncementsPage from './pages/AnnouncementsPage';
 import ProfilePage from './pages/ProfilePage';
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="dashboard" element={<DashboardPage />} />
             <Route path="payments" element={<PaymentsPage />} />
             <Route path="finance" element={<FinancePage />} />
+            <Route path="income" element={<RequireAdmin><IncomePage /></RequireAdmin>} />
             <Route path="events" element={<EventsPage />} />
             <Route path="announcements" element={<AnnouncementsPage />} />
             <Route path="profile" element={<ProfilePage />} />
