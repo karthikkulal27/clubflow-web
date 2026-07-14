@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useDynamicColors } from '../hooks/useDynamicColors';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -321,6 +322,7 @@ export default function FinancePage() {
   const user = authStore.getUser();
   const isAdmin = user?.role === 'ADMIN';
   const navigate = useNavigate();
+  const { primary } = useDynamicColors();
   const [modal, setModal] = useState<Modal>(null);
   const [editingExpense, setEditingExpense] = useState<{ id: string; defaultValues: Partial<ExpenseForm> } | null>(null);
   const [editingPlan, setEditingPlan] = useState<DuesPlan | null>(null);
@@ -378,9 +380,9 @@ export default function FinancePage() {
       </div>
 
       {/* Summary card */}
-      <div className="rounded-[20px] overflow-hidden" style={{ background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)', boxShadow: '0 8px 32px rgba(37,99,235,0.30)' }}>
+      <div className="rounded-[20px] overflow-hidden" style={{ background: `linear-gradient(135deg, var(--color-primary), var(--color-secondary))` }}>
         <div className="p-5">
-          <p className="text-[12px] font-semibold text-blue-200 mb-1">Available Balance</p>
+          <p className="text-[12px] font-semibold text-white/75 mb-1">Available Balance</p>
           <p className="text-[32px] font-bold text-white leading-tight">
             ₹{balance.toLocaleString('en-IN')}
           </p>
@@ -390,7 +392,7 @@ export default function FinancePage() {
                 <TrendingUp size={13} color="white" />
               </div>
               <div>
-                <p className="text-[10px] text-blue-200">Collected</p>
+                <p className="text-[10px] text-white/75">Collected</p>
                 <p className="text-[14px] font-bold text-white">₹{collectedAmount.toLocaleString('en-IN')}</p>
               </div>
             </div>
@@ -399,7 +401,7 @@ export default function FinancePage() {
                 <TrendingDown size={13} color="white" />
               </div>
               <div>
-                <p className="text-[10px] text-blue-200">Expenses</p>
+                <p className="text-[10px] text-white/75">Expenses</p>
                 <p className="text-[14px] font-bold text-white">₹{totalExpenses.toLocaleString('en-IN')}</p>
               </div>
             </div>

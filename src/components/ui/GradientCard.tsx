@@ -20,7 +20,7 @@ export function GradientCard({ label, amount, stats, simple }: GradientCardProps
   return (
     <div
       className="rounded-[24px] p-5"
-      style={{ background: 'linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #3b82f6 100%)' }}
+      style={{ background: `linear-gradient(135deg, var(--color-primary), var(--color-secondary))` }}
     >
       {/* Top row */}
       <div className="flex items-start justify-between mb-4">

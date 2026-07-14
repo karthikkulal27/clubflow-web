@@ -8,7 +8,8 @@ import {
 } from 'lucide-react';
 import { authStore } from '../store/auth.store';
 import { getMemberDashboard, getAdminDashboard } from '../lib/dashboard.api';
-import { getProfile } from '../lib/members.api';
+import { getProfile, getClubBranding } from '../lib/members.api';
+import { useDynamicColors } from '../hooks/useDynamicColors';
 import { usePayNow } from '../hooks/useRazorpay';
 import { Card } from '../components/ui/Card';
 import { GradientCard } from '../components/ui/GradientCard';
@@ -228,17 +229,61 @@ function EventRow({ event }: { event: any }) {
   );
 }
 
+function ClubBrandingCard() {
+  const { data: branding } = useQuery({ queryKey: ['club-branding'], queryFn: getClubBranding });
+  const { primary } = useDynamicColors();
+
+  if (!branding || (!branding.logoUrl && !branding.slogan)) return null;
+
+  return (
+    <div className="rounded-[20px] overflow-hidden border border-slate-200 bg-gradient-to-br from-white to-slate-50 shadow-sm">
+      <div className="p-6 flex items-center gap-5">
+        {branding.logoUrl && (
+          <div className="relative flex-shrink-0">
+            <div
+              className="w-24 h-24 rounded-[14px] flex items-center justify-center p-2 shadow-sm"
+              style={{ backgroundColor: primary + '15' }}
+            >
+              <img src={branding.logoUrl} alt="Club logo" className="w-full h-full object-contain" />
+            </div>
+            <div
+              className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center"
+              style={{ backgroundColor: primary }}
+            >
+              <div className="w-2 h-2 bg-white rounded-full"></div>
+            </div>
+          </div>
+        )}
+        <div className="flex-1">
+          <p className="text-[18px] font-bold text-slate-900">{branding.name}</p>
+          {branding.slogan && (
+            <p className="text-[13px] font-medium text-slate-500 mt-2 italic">{branding.slogan}</p>
+          )}
+          <div className="flex gap-2 mt-3">
+            <div className="h-1 w-6 rounded-full" style={{ backgroundColor: primary }}></div>
+            <div className="h-1 w-4 rounded-full" style={{ backgroundColor: primary, opacity: 0.5 }}></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MemberDashboard() {
   const { data, isLoading } = useQuery({ queryKey: ['dashboard-member'], queryFn: getMemberDashboard });
   const [paySuccess, setPaySuccess] = useState(false);
   const pay = usePayNow(() => setPaySuccess(true));
   const user = authStore.getUser();
+  const { primary } = useDynamicColors();
 
   if (isLoading) return <div className="px-5 pt-3 pb-8"><Skeleton /></div>;
 
   return (
     /* screenPadding=20px, paddingBottom spacing[8]=32px, sections gap sectionGap=24px */
     <div className="px-5 pt-3 pb-8 flex flex-col gap-6">
+      {/* Club Branding */}
+      <ClubBrandingCard />
+
       {/* Top bar — marginBottom spacing[5]=20px (handled by gap-6), paddingTop spacing[2]=8px */}
       <div className="flex items-start justify-between pt-2">
         <div>
@@ -315,6 +360,15 @@ function AdminDashboard() {
   const [paySuccess, setPaySuccess] = useState(false);
   const pay = usePayNow(() => setPaySuccess(true));
   const user = authStore.getUser();
+  const { primary } = useDynamicColors();
+
+  const primaryLight = (() => {
+    const hex = primary.replace('#', '');
+    const r = Math.min(255, parseInt(hex.slice(0, 2), 16) + 230);
+    const g = Math.min(255, parseInt(hex.slice(2, 4), 16) + 230);
+    const b = Math.min(255, parseInt(hex.slice(4, 6), 16) + 230);
+    return `rgb(${r}, ${g}, ${b})`;
+  })();
 
   if (isLoading) return <div className="px-5 pt-3 pb-8"><Skeleton /></div>;
 
@@ -324,6 +378,9 @@ function AdminDashboard() {
   return (
     /* screenPadding=20px, sections gap sectionGap=24px */
     <div className="px-5 pt-3 pb-8 flex flex-col gap-6">
+      {/* Club Branding */}
+      <ClubBrandingCard />
+
       {/* Top bar — paddingTop spacing[2]=8px, marginBottom spacing[6]=24px (gap-6) */}
       <div className="flex items-start justify-between pt-2">
         <div>
@@ -331,7 +388,7 @@ function AdminDashboard() {
           <p className="text-[20px] font-bold text-slate-900">{user?.name}</p>
         </div>
         <div className="flex items-center gap-3">
-          <span className="px-3 py-1 rounded-full bg-primary-light text-[11px] font-semibold text-primary">Admin</span>
+          <span className="px-3 py-1 rounded-full text-[11px] font-semibold" style={{ backgroundColor: primaryLight, color: primary }}>Admin</span>
         </div>
       </div>
 
@@ -363,10 +420,10 @@ function AdminDashboard() {
         <section>
           <SectionHeader title={`${MONTHS[now.getMonth()]} ${now.getFullYear()}`} />
           <div className="grid grid-cols-2 gap-3">
-            <StatCard label="Total Members" value={data.stats.totalMembers} icon={<Users size={18} className="text-primary" />} iconBg="bg-primary-light" />
+            <StatCard label="Total Members" value={data.stats.totalMembers} icon={<Users size={18} style={{ color: primary }} />} iconBg="" iconBgStyle={{ backgroundColor: primaryLight }} />
             <StatCard label="Paid" value={data.stats.paidCount} icon={<TrendingUp size={18} className="text-[#22c55e]" />} iconBg="bg-[#dcfce7]" />
             <StatCard label="Pending" value={data.stats.pendingCount} icon={<Clock size={18} className="text-[#f59e0b]" />} iconBg="bg-[#fef3c7]" />
-            <StatCard label="Collected" value={`₹${Number(data.stats.totalIncome ?? data.stats.totalCollection ?? 0).toLocaleString('en-IN')}`} icon={<Wallet size={18} className="text-primary" />} iconBg="bg-primary-light" />
+            <StatCard label="Collected" value={`₹${Number(data.stats.totalIncome ?? data.stats.totalCollection ?? 0).toLocaleString('en-IN')}`} icon={<Wallet size={18} style={{ color: primary }} />} iconBg="" iconBgStyle={{ backgroundColor: primaryLight }} />
           </div>
         </section>
       )}
