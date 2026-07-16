@@ -162,10 +162,12 @@ export default function IncomePage() {
               {incomeEntries.length} entries
           </p>
         </div>
-      </Card>
+        </Card>
+      </div>
 
       {/* Income Entries List */}
-      <Card>
+      <div style={{ marginBottom: '30px' }}>
+        <Card>
         <h2 style={{ marginBottom: '20px' }}>Income History</h2>
         {isLoading ? (
           <p style={{ textAlign: 'center', color: '#999' }}>Loading...</p>
@@ -241,7 +243,8 @@ export default function IncomePage() {
             </table>
           </div>
         )}
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }
