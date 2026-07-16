@@ -6,9 +6,9 @@ interface ClubBranding {
   id: string;
   name: string;
   logoUrl?: string | null;
-  primaryColor?: string;
-  secondaryColor?: string;
-  slogan?: string;
+  primaryColor?: string | null;
+  secondaryColor?: string | null;
+  slogan?: string | null;
 }
 
 interface BrandingContextType {

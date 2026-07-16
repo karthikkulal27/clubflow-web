@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useDynamicColors } from '../hooks/useDynamicColors';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -337,7 +336,7 @@ export default function FinancePage() {
 
   const { data: stats } = useQuery({ queryKey: ['payment-stats'], queryFn: () => getPaymentStats() });
   const { data: dashboard } = useQuery({ queryKey: ['dashboard'], queryFn: () => getAdminDashboard(), enabled: isAdmin });
-  const { data: incomeEntries = [] } = useQuery({ queryKey: ['income'], queryFn: () => getIncome(), enabled: isAdmin });
+  useQuery({ queryKey: ['income'], queryFn: () => getIncome(), enabled: isAdmin });
   const { data: expData, isLoading: expLoading } = useQuery({ queryKey: ['expenses'], queryFn: () => getExpenses() });
   const { data: duesPlans } = useQuery({ queryKey: ['dues-plans'], queryFn: getDuesPlans, enabled: isAdmin });
   const { data: specialCollections } = useQuery({ queryKey: ['special-collections'], queryFn: getSpecialCollections, enabled: isAdmin });
