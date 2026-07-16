@@ -66,8 +66,9 @@ export default function IncomePage() {
       </p>
 
       {/* Add Income Form */}
-      <Card style={{ marginBottom: '30px' }}>
-        <h2 style={{ marginBottom: '20px' }}>Add Income Entry</h2>
+      <div style={{ marginBottom: '30px' }}>
+        <Card>
+          <h2 style={{ marginBottom: '20px' }}>Add Income Entry</h2>
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'grid', gap: '15px' }}>
             <div>
@@ -142,21 +143,23 @@ export default function IncomePage() {
             </div>
           </div>
         </form>
-      </Card>
+        </Card>
+      </div>
 
       {/* Summary */}
-      <Card style={{ marginBottom: '30px', background: '#f8f9fa' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <p style={{ fontSize: '0.9em', color: '#666', margin: '0 0 8px 0' }}>
-              Total Admin Income
-            </p>
-            <p style={{ fontSize: '1.8em', fontWeight: 'bold', margin: 0, color: '#667eea' }}>
-              ₹{totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
-          <p style={{ fontSize: '0.85em', color: '#999' }}>
-            {incomeEntries.length} entries
+      <div style={{ marginBottom: '30px' }}>
+        <Card>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px' }}>
+            <div>
+              <p style={{ fontSize: '0.9em', color: '#666', margin: '0 0 8px 0' }}>
+                Total Admin Income
+              </p>
+              <p style={{ fontSize: '1.8em', fontWeight: 'bold', margin: 0, color: '#667eea' }}>
+                ₹{totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </p>
+            </div>
+            <p style={{ fontSize: '0.85em', color: '#999' }}>
+              {incomeEntries.length} entries
           </p>
         </div>
       </Card>

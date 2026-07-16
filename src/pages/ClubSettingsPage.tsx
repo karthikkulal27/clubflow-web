@@ -74,9 +74,6 @@ export default function ClubSettingsPage() {
     }
   }, [branding, reset]);
 
-  const primaryColorValue = watch('primaryColor');
-  const secondaryColorValue = watch('secondaryColor');
-
   const update = useMutation({
     mutationFn: updateClub,
     onSuccess: () => qc.invalidateQueries({ queryKey: ['club'] }),

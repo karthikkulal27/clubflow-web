@@ -5,7 +5,7 @@ import { authStore } from "../store/auth.store";
 interface ClubBranding {
   id: string;
   name: string;
-  logoUrl?: string;
+  logoUrl?: string | null;
   primaryColor?: string;
   secondaryColor?: string;
   slogan?: string;

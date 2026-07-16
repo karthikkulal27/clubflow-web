@@ -322,7 +322,6 @@ export default function FinancePage() {
   const user = authStore.getUser();
   const isAdmin = user?.role === 'ADMIN';
   const navigate = useNavigate();
-  const { primary } = useDynamicColors();
   const [modal, setModal] = useState<Modal>(null);
   const [editingExpense, setEditingExpense] = useState<{ id: string; defaultValues: Partial<ExpenseForm> } | null>(null);
   const [editingPlan, setEditingPlan] = useState<DuesPlan | null>(null);
@@ -367,7 +366,6 @@ export default function FinancePage() {
   const balance = isFinite(collectedAmount) ? collectedAmount - totalExpenses : 0;
   const collPayments = collData?.items ?? [];
   const collTotal = collData?.total ?? 0;
-  const totalAdminIncome = incomeEntries.reduce((s, e) => s + Number(e.amount), 0);
 
   return (
     <div className="px-5 pt-3 pb-8 flex flex-col gap-6">

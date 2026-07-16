@@ -274,7 +274,6 @@ function MemberDashboard() {
   const [paySuccess, setPaySuccess] = useState(false);
   const pay = usePayNow(() => setPaySuccess(true));
   const user = authStore.getUser();
-  const { primary } = useDynamicColors();
 
   if (isLoading) return <div className="px-5 pt-3 pb-8"><Skeleton /></div>;
 
