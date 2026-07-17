@@ -23,6 +23,10 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Apply default colors immediately (before async fetch)
+    document.documentElement.style.setProperty("--color-primary", "#2563eb");
+    document.documentElement.style.setProperty("--color-secondary", "#3b82f6");
+
     const fetchBranding = async () => {
       // Only fetch if user is authenticated
       if (!authStore.isAuthenticated()) {
@@ -44,9 +48,6 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         document.documentElement.style.setProperty("--color-secondary", secondaryColor);
       } catch (err) {
         console.warn("Failed to fetch club branding:", err);
-        // Apply default colors on error
-        document.documentElement.style.setProperty("--color-primary", "#2563eb");
-        document.documentElement.style.setProperty("--color-secondary", "#3b82f6");
       } finally {
         setIsLoading(false);
       }
