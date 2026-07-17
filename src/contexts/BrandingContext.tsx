@@ -23,6 +23,22 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Apply cached colors from localStorage on mount (before fetch)
+    const cachedBranding = localStorage.getItem('clubBranding');
+    if (cachedBranding) {
+      try {
+        const cached = JSON.parse(cachedBranding);
+        if (cached.primaryColor) {
+          document.documentElement.style.setProperty("--color-primary", cached.primaryColor.toLowerCase());
+        }
+        if (cached.secondaryColor) {
+          document.documentElement.style.setProperty("--color-secondary", cached.secondaryColor.toLowerCase());
+        }
+      } catch (err) {
+        console.warn("Failed to parse cached branding:", err);
+      }
+    }
+
     const fetchBranding = async () => {
       // Only fetch if user is authenticated
       if (!authStore.isAuthenticated()) {
@@ -34,7 +50,10 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         const data = await getClubBranding();
         setBranding(data);
 
-        // Only apply custom colors if they exist
+        // Cache the branding data
+        localStorage.setItem('clubBranding', JSON.stringify(data));
+
+        // Apply custom colors if they exist
         if (data.primaryColor) {
           const primaryColor = data.primaryColor.toLowerCase();
           document.documentElement.style.setProperty("--color-primary", primaryColor);
