@@ -7,6 +7,7 @@ import { Phone, Lock, ShieldCheck, Users, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { getClubBranding } from '../lib/members.api';
 
 const schema = z.object({
   phone: z.string().min(10, 'Enter a valid phone number'),
@@ -28,6 +29,16 @@ export default function LoginPage() {
     try {
       setError('');
       await login(data);
+
+      // Fetch and cache branding immediately after login
+      try {
+        const branding = await getClubBranding();
+        localStorage.setItem('clubBranding', JSON.stringify(branding));
+        console.log('Branding cached after login:', branding);
+      } catch (brandingErr) {
+        console.warn('Failed to fetch branding after login:', brandingErr);
+      }
+
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       setError(err?.response?.data?.message ?? 'Login failed. Please check your credentials.');
