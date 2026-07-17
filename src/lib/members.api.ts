@@ -112,6 +112,10 @@ export async function updateClubBranding(payload: {
   return data.data;
 }
 
+export async function changePassword(oldPassword: string, newPassword: string): Promise<void> {
+  await api.post('/auth/change-password', { oldPassword, newPassword });
+}
+
 export async function uploadAvatar(file: File): Promise<string> {
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
   const storagePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;

@@ -4,8 +4,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { format } from 'date-fns';
-import { User, Mail, Calendar, Shield, Phone, Pencil, X, AlertCircle, Droplets, Users, Info, Camera } from 'lucide-react';
-import { getProfile, updateProfile, getClub, uploadAvatar } from '../lib/members.api';
+import { User, Mail, Calendar, Shield, Phone, Pencil, X, AlertCircle, Droplets, Users, Info, Camera, Lock } from 'lucide-react';
+import { getProfile, updateProfile, getClub, uploadAvatar, changePassword } from '../lib/members.api';
 import { authStore } from '../store/auth.store';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
@@ -20,13 +20,18 @@ const schema = z.object({
   dateOfBirth: z.string().optional(),
   bloodGroup: z.string().optional(),
   emergencyContact: z.string().min(10, 'Enter valid number').or(z.literal('')).optional(),
-  newPassword: z.string().refine((v) => v === '' || v.length >= 6, 'Min 6 characters').optional(),
-  confirmPassword: z.string().optional(),
-}).refine((d) => !d.newPassword || d.newPassword === d.confirmPassword, {
+});
+type FormData = z.infer<typeof schema>;
+
+const changePasswordSchema = z.object({
+  oldPassword: z.string().min(1, 'Current password required'),
+  newPassword: z.string().min(6, 'Password must be at least 6 characters'),
+  confirmPassword: z.string(),
+}).refine((d) => d.newPassword === d.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],
 });
-type FormData = z.infer<typeof schema>;
+type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 const avatarColors = [
   'bg-[#e0e7ff] text-[#4f46e5]',
@@ -55,6 +60,7 @@ export default function ProfilePage() {
   const isAdmin = user?.role === 'ADMIN';
   const qc = useQueryClient();
   const [editMode, setEditMode] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -66,6 +72,15 @@ export default function ProfilePage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['profile'] });
       setEditMode(false);
+    },
+  });
+
+  const changePass = useMutation({
+    mutationFn: (data: ChangePasswordFormData) => changePassword(data.oldPassword, data.newPassword),
+    onSuccess: () => {
+      setShowChangePassword(false);
+      passwordForm.reset();
+      alert('Password changed successfully');
     },
   });
 
@@ -97,6 +112,10 @@ export default function ProfilePage() {
     } : undefined,
   });
 
+  const passwordForm = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+  });
+
   const watchedBloodGroup = watch('bloodGroup');
 
   async function onSubmit(formData: FormData) {
@@ -107,7 +126,6 @@ export default function ProfilePage() {
       dateOfBirth: formData.dateOfBirth || null,
       bloodGroup: formData.bloodGroup || null,
       emergencyContact: formData.emergencyContact || null,
-      ...(formData.newPassword ? { password: formData.newPassword } : {}),
     });
   }
 
@@ -125,15 +143,16 @@ export default function ProfilePage() {
   const colorIdx = (data?.name.charCodeAt(0) ?? 0) % avatarColors.length;
 
   return (
-    <div className="px-5 pt-3 pb-8 flex flex-col gap-5">
-      <div className="pt-2 flex items-center justify-between">
-        <p className="text-[20px] font-bold text-slate-900">My Profile</p>
+    <div className="px-5 py-5 flex flex-col gap-5 max-w-2xl mx-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-[24px] font-bold text-slate-900">My Profile</h1>
         <button
-          onClick={() => { setEditMode((v) => !v); }}
-          className="w-9 h-9 rounded-full flex items-center justify-center transition-colors"
+          type="button"
+          onClick={() => setEditMode(!editMode)}
+          className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-95"
           style={{ background: editMode ? '#fee2e2' : '#eff6ff', color: editMode ? '#ef4444' : '#2563eb' }}
         >
-          {editMode ? <X size={18} /> : <Pencil size={16} />}
+          {editMode ? <X size={20} /> : <Pencil size={18} />}
         </button>
       </div>
 
@@ -188,7 +207,7 @@ export default function ProfilePage() {
 
       {editMode ? (
         /* ── EDIT MODE ─────────────────────────── */
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-[18px] border border-slate-200 px-5 py-5 flex flex-col gap-4">
           <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Basic Info</p>
           <Input label="Full Name" leftIcon={<User size={16} />} error={errors.name?.message} {...register('name')} />
           <Input label="Phone" type="tel" leftIcon={<Phone size={16} />} error={errors.phone?.message} {...register('phone')} />
@@ -228,12 +247,6 @@ export default function ProfilePage() {
           <Input label="Emergency Contact (optional)" type="tel" leftIcon={<AlertCircle size={16} />}
             error={errors.emergencyContact?.message} {...register('emergencyContact')} />
 
-          <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mt-1">Change Password</p>
-          <Input label="New Password (optional)" type="password" leftIcon={<Shield size={16} />}
-            placeholder="Min 6 characters" error={errors.newPassword?.message} {...register('newPassword')} />
-          <Input label="Confirm New Password" type="password" leftIcon={<Shield size={16} />}
-            placeholder="Repeat new password" error={errors.confirmPassword?.message} {...register('confirmPassword')} />
-
           {update.error && (
             <div className="bg-[#fef2f2] border border-[#fecaca] text-[#dc2626] text-[13px] rounded-[10px] px-3 py-2.5">
               {(update.error as any)?.response?.data?.message ?? 'Update failed'}
@@ -268,6 +281,64 @@ export default function ProfilePage() {
               <InfoRow icon={<Shield size={14} />} label="Role" value={isAdmin ? 'Club Administrator' : 'Club Member'} />
             </div>
           </Card>
+
+          {/* Change Password Card */}
+          {!showChangePassword ? (
+            <div className="bg-red-50 border border-red-200 rounded-[18px] px-4 py-4 cursor-pointer hover:bg-red-100 transition-colors" onClick={() => setShowChangePassword(true)}>
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-[10px] bg-red-100 flex items-center justify-center text-red-500 flex-shrink-0">
+                  <Lock size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold text-red-900">Change Password</p>
+                  <p className="text-[12px] text-red-700 mt-0.5">Update your password regularly for better security</p>
+                </div>
+                <Pencil size={16} className="text-red-500 flex-shrink-0" />
+              </div>
+            </div>
+          ) : (
+            <Card padding="md">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[14px] font-semibold text-slate-900">Change Password</p>
+                <button type="button" onClick={() => { setShowChangePassword(false); passwordForm.reset(); }} className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-600">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={passwordForm.handleSubmit((data) => changePass.mutate(data))} className="flex flex-col gap-3">
+                <Input
+                  label="Current Password"
+                  type="password"
+                  leftIcon={<Lock size={16} />}
+                  error={passwordForm.formState.errors.oldPassword?.message}
+                  {...passwordForm.register('oldPassword')}
+                />
+                <Input
+                  label="New Password"
+                  type="password"
+                  leftIcon={<Lock size={16} />}
+                  error={passwordForm.formState.errors.newPassword?.message}
+                  {...passwordForm.register('newPassword')}
+                />
+                <Input
+                  label="Confirm Password"
+                  type="password"
+                  leftIcon={<Lock size={16} />}
+                  error={passwordForm.formState.errors.confirmPassword?.message}
+                  {...passwordForm.register('confirmPassword')}
+                />
+
+                <div className="flex gap-2 pt-2">
+                  <Button type="submit" fullWidth loading={changePass.isPending}>
+                    Change Password
+                  </Button>
+                  <Button type="button" variant="secondary" fullWidth onClick={() => { setShowChangePassword(false); passwordForm.reset(); }} disabled={changePass.isPending}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          )}
 
           {club && (
             <Card padding="none">
