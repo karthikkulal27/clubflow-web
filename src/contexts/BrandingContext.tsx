@@ -23,10 +23,6 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Apply default colors immediately (before async fetch)
-    document.documentElement.style.setProperty("--color-primary", "#2563eb");
-    document.documentElement.style.setProperty("--color-secondary", "#3b82f6");
-
     const fetchBranding = async () => {
       // Only fetch if user is authenticated
       if (!authStore.isAuthenticated()) {
@@ -38,14 +34,18 @@ export function BrandingProvider({ children }: { children: React.ReactNode }) {
         const data = await getClubBranding();
         setBranding(data);
 
-        // Apply custom colors as CSS variables
-        const primaryColor = (data.primaryColor || '#2563eb').toLowerCase();
-        const secondaryColor = (data.secondaryColor || '#3b82f6').toLowerCase();
+        // Only apply custom colors if they exist
+        if (data.primaryColor) {
+          const primaryColor = data.primaryColor.toLowerCase();
+          document.documentElement.style.setProperty("--color-primary", primaryColor);
+          console.log('BrandingProvider applying primary color:', primaryColor);
+        }
 
-        console.log('BrandingProvider applying colors:', { primaryColor, secondaryColor });
-
-        document.documentElement.style.setProperty("--color-primary", primaryColor);
-        document.documentElement.style.setProperty("--color-secondary", secondaryColor);
+        if (data.secondaryColor) {
+          const secondaryColor = data.secondaryColor.toLowerCase();
+          document.documentElement.style.setProperty("--color-secondary", secondaryColor);
+          console.log('BrandingProvider applying secondary color:', secondaryColor);
+        }
       } catch (err) {
         console.warn("Failed to fetch club branding:", err);
       } finally {
